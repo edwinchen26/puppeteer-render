@@ -1,7 +1,7 @@
 const puppeteer = require("puppeteer");
 require("dotenv").config();
 
-const scrapeLogic = async (res) => {
+const scrapeLogic = async (req, res) => {
   const browser = await puppeteer.launch({
     args: [
       "--disable-setuid-sandbox",
@@ -43,7 +43,7 @@ const scrapeLogic = async (res) => {
       }
     });
 
-    await page.goto("https://x.com/scarra/status/1808951107026366913", { waitUntil: 'networkidle0' });
+    await page.goto(req.query.url, { waitUntil: 'networkidle0' });
   } catch (e) {
     console.error(e);
     res.send(`Something went wrong while running Puppeteer: ${e}`);
