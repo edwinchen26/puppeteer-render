@@ -16,30 +16,34 @@ const scrapeLogic = async (res) => {
   });
   try {
     const page = await browser.newPage();
+    await page.setRequestInterception(true);
 
-    await page.goto("https://developer.chrome.com/");
+    page.on("request", request => request.continue());
 
-    // Set screen size
-    await page.setViewport({ width: 1080, height: 1024 });
+    page.on("response", (response) => {
+      const request = response.request();
 
-    // Type into search box
-    await page.type(".search-box__input", "automate beyond recorder");
+      if (request.resourceType() === "xhr" && request.url().includes('TweetResultByRestId')) {
+        console.log(request.url());
 
-    // Wait and click on first result
-    const searchResultSelector = ".search-box__link";
-    await page.waitForSelector(searchResultSelector);
-    await page.click(searchResultSelector);
+        response.json().then(output => {
+          const data = output?.data?.tweetResult?.result;
 
-    // Locate the full title with a unique string
-    const textSelector = await page.waitForSelector(
-      "text/Customize and automate"
-    );
-    const fullTitle = await textSelector.evaluate((el) => el.textContent);
+          const metrics = {
+            created_at: data.legacy.created_at,
+            bookmark_count: data.legacy.bookmark_count,
+            favorite_count: data.legacy.favorite_count,
+            quote_count: data.legacy.quote_count,
+            reply_count: data.legacy.reply_count,
+            retweet_count: data.legacy.retweet_count
+          };
 
-    // Print the full title
-    const logStatement = `The title of this blog post is ${fullTitle}`;
-    console.log(logStatement);
-    res.send(logStatement);
+          res.send(metrics);
+        });
+      }
+    });
+
+    await page.goto("https://x.com/scarra/status/1808951107026366913", { waitUntil: 'networkidle0' });
   } catch (e) {
     console.error(e);
     res.send(`Something went wrong while running Puppeteer: ${e}`);
